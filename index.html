@@ -1,0 +1,120 @@
+<!DOCTYPE html >
+<html xmlns:th="http://www.thymeleaf.org">
+	<HEAD>
+		<TITLE>欢迎下载 Ta</TITLE>
+		<META charset=utf-8>
+		<META name=viewport content=width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,minimal-ui>
+		<META name=apple-mobile-web-app-capable content=yes>
+		<META name=apple-touch-fullscreen content=yes>
+		<META name=format-detection content=telephone=no,email=no>
+		<META name=msapplication-TileColor content=#da532c>
+		<META name=msapplication-TileImage content=/favicons/mstile-144x144.png> <LINK rel=stylesheet type=text/css href="/statics/css/style.css">
+		<META name=GENERATOR content="MSHTML 8.00.6001.19393">
+		<style>
+			* {
+            padding: 0;
+            margin: 0;
+        }
+
+        body {
+            font-family: Verdana, Arial, Helvetica, sans-serif;
+            font-size: 12px;
+            color: #222222;
+        }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+        }
+
+        #box {
+            position: relative;
+            height: 100%;
+            width: 100%;
+        }
+
+        #shade {
+			display: none;
+			 position: absolute;
+            top: 0%;
+			width: 100%;
+			
+			height: 100%;
+			background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        #shade p {
+            text-align: left;
+			color: #000;
+			background-color: #fff;
+			width: 100%;
+			margin-left: 10%;
+			padding: 2% 4%;
+			line-height: 2;
+			font-size: 16px;
+        }
+
+        #shade p span {
+            color: #34A0EA;
+        }
+
+        #img {
+            position: absolute;
+			display: block;
+			right: 5%;
+			top: 1%;
+            
+        }
+    </style>
+	</HEAD>
+	<BODY>
+		
+		<!--<input type="hidden" id="port" th:value="${port}"/>-->
+		<DIV class=container>
+			<div id="shade">
+				<p>我很努力,但是无奈这儿不让下载<br>别担心,点击<span>右上角</span><br>选择<span> "在浏览器中打开" </span>就能下啦~~</p>
+				<img id='img' src="./statics/images/right.png" alt="">
+			</div>
+			<DIV class=header>
+				<DIV class="app-icon text-center animated flipInX"><IMG alt="iLight Bulb" src="./statics/images/512pt.png" width=110
+					 height=110>
+				</DIV>
+				<DIV class="app-info text-center">
+				</DIV>
+			</DIV>
+			<DIV class="content clearfix">
+				<DIV class=text-center>
+					<P>
+						“Ta”
+						是一款软硬件结合的应用，与智能设备配套使用，也可单独使用。通过该应用与手机连接，即可进行各种无线操控，您可用此应用进行天气的查询，听故事，听音乐，还可以与智能设备进行聊天，进行多轮的智能对话。还可以设置闹钟，提醒事项，可以语音打电话。
+					</P>
+					<button type="button" id="btn" style="text-align: center;margin-top: 20px;">点击下载</button>
+				</DIV>
+			</DIV>
+			<FOOTER class=text-center>
+				<!--  <DIV class=select-l><A href="http://www.chipsguide.com/download/ilight/app_en.htm">English</A> |
+              <A href="http://www.chipsguide.com/download/ilight/app.htm">中文</A></DIV>-->
+			</FOOTER>
+			<script src="http://code.jquery.com/jquery-1.8.3.min.js"></script>
+			<script type="application/javascript">
+				$(function() {
+					$("#btn").click(function() {
+						var port = $("#port").val();
+						if (port === "Android") {
+							location.href = "https://down.qq.com/qqweb/QQ_1/android_apk/Android_8.4.1.4680_537064985.apk";
+						} else if (port === "iOS") {
+							// location.href="https://apps.apple.com/cn/app/ilight-smart-lights/id981433808";
+							location.href = "https://apps.apple.com/cn/app/%E6%92%AD%E5%AE%A2/id525463029";
+						} else {
+							// alert("请在移动端进行下载~~");
+							$('#shade').css('display','block') // 打开遮罩层
+						}
+					})
+					// 点击遮罩层关闭
+					$("#shade").click(function() { 
+						$('#shade').css('display','none')
+					})
+				})
+			</script>
+	</BODY>
+</HTML>
