@@ -1,67 +1,25 @@
-function isTencentOrWeChatBrowser() {
-    const ua = navigator.userAgent.toLowerCase();
-    return (
-        ua.indexOf('micromessenger')!== -1 ||
-        ua.indexOf('qqbrowser')!== -1 ||
-        ua.indexOf('tencenttraveler')!== -1 ||
-        ua.indexOf('mqqbrowser')!== -1 ||
-        ua.indexOf('qq/')!== -1 ||
-        ua.indexOf('qzone/')!== -1 ||
-        ua.indexOf('weishi/')!== -1 ||
-        ua.indexOf('qqmusic/')!== -1 ||
-        ua.indexOf('tencentnews/')!== -1 ||
-        ua.indexOf('qqmail/')!== -1 ||
-        ua.indexOf('qqreader/')!== -1 ||
-        ua.indexOf('qqpim/')!== -1 ||
-        ua.indexOf('qqhd/')!== -1 ||
-        ua.indexOf('qqsecure/')!== -1 ||
-        ua.indexOf('qqwifimanager/')!== -1 ||
-        ua.indexOf('qqlive/')!== -1 ||
-        ua.indexOf('qqpinyin/')!== -1 ||
-        ua.indexOf('qqkj/')!== -1 ||
-        ua.indexOf('qqdownloader/')!== -1 ||
-        ua.indexOf('qqlite/')!== -1 ||
-        ua.indexOf('qqvideo/')!== -1 ||
-        ua.indexOf('qqbrowserlite/')!== -1 ||
-        ua.indexOf('qqsync/')!== -1 ||
-        ua.indexOf('qqbrowserhd/')!== -1 ||
-        ua.indexOf('qqbrowserpad/')!== -1 ||
-        ua.indexOf('qqbrowsermini/')!== -1 ||
-        ua.indexOf('qqinternational/')!== -1 ||
-        ua.indexOf('qqbrowserenterprise/')!== -1 ||
-        ua.indexOf('qqbrowserforlinux/')!== -1 ||
-        ua.indexOf('qqbrowserforandroid/')!== -1 ||
-        ua.indexOf('qqbrowserforiphone/')!== -1 ||
-        ua.indexOf('qqbrowserforipad/')!== -1
-    );
-}
+// wechat_redirect.js
 
-function getCurrentURL() {
-    return window.location.href;
-}
+(function() {
+    var isWeixin = /MicroMessenger/i.test(navigator.userAgent);
+    var isQQBrowser = /QQBrowser/i.test(navigator.userAgent);
+    var isQQ = /QQ/i.test(navigator.userAgent);
+    var isQZone = /Qzone/i.test(navigator.userAgent);
+    var isTM = /TencentTraveler/i.test(navigator.userAgent);
 
-function redirectToThirdPartyBrowser() {
-    const currentURL = getCurrentURL();
-    window.location.href = `https://eazyfun.github.io/js/?redirect=${encodeURIComponent(currentURL)}`;
-}
+    // 检测是否在腾讯系浏览器或微信环境中
+    if (isWeixin || isQQBrowser || isQQ || isQZone || isTM) {
+        // 获取当前页面的URL
+        var currentUrl = encodeURIComponent(window.location.href);
+        // 构建跳转URL
+        var redirectUrl = "https://eazyfun.github.io/js/?redirect=" + currentUrl;
+        // 跳转到提示页面，并附带原页面URL作为参数
+        window.location.href = redirectUrl;
+    }else {// 获取查询参数redirect的值
+        var urlParams = new URLSearchParams(window.location.search);
+        var redirectUrl = urlParams.get('redirect');
 
-function redirectToOriginalURL() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const redirectURL = urlParams.get('redirect');
-    if (redirectURL) {
-        window.location.href = redirectURL;
-    } else {
-        console.error('No redirect URL found.');
+        // 设置链接的href属性为解析出的原始页面URL
+        document.getElementById('redirectLink').href = redirectUrl;
     }
-}
-
-function detectAndRedirect() {
-    if (isTencentOrWeChatBrowser()) {
-        redirectToThirdPartyBrowser();
-    } else {
-        redirectToOriginalURL();
-    }
-}
-
-// 立即执行检测和重定向函数
-detectAndRedirect();
+})();
