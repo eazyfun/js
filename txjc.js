@@ -19,7 +19,8 @@
         var urlParams = new URLSearchParams(window.location.search);
         var redirectUrl = urlParams.get('redirect');
 
-        // 设置链接的href属性为解析出的原始页面URL
-        document.getElementById('redirectLink').href = redirectUrl;
+        // 设置页面立即跳转到解析出的原始页面URL
+        window.location.href = redirectUrl;
+
     }
 })();
