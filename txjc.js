@@ -10,7 +10,7 @@
     // 检测是否在腾讯系浏览器或微信环境中
     if (isWeixin || isQQBrowser || isQQ || isQZone || isTM) {
         // 获取当前页面的URL
-        var currentUrl = encodeURIComponent(window.location.href);
+        var currentUrl = window.location.href;
         // 构建跳转URL
         var redirectUrl = "https://eazyfun.github.io/js/?redirect=" + currentUrl;
         // 跳转到提示页面，并附带原页面URL作为参数
