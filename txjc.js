@@ -20,6 +20,9 @@
         }
         
     } else {
+
+        if (isWeixin || isQQBrowser || isQQ || isQZone || isTM) {
+        
         // 如果不存在redirect参数值或为空，代表首次在tx环境
         // 获取当前页面的URL
         var currentUrl = window.location.href;
@@ -27,6 +30,12 @@
         var redirectUrl = "https://eazyfun.github.io/js/?redirect=" + currentUrl;
         // 跳转到提示页面，并附带原页面URL作为参数
         window.location.href = redirectUrl;
+        }else {
+            //在第三方浏览器，无需动作
+            
+                }
+        
+        
     }
 })();
 
