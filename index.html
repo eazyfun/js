@@ -9,7 +9,7 @@
 		<META name=apple-touch-fullscreen content=yes>
 		<META name=format-detection content=telephone=no,email=no>
 		<META name=msapplication-TileColor content=#da532c>
-		<META name=msapplication-TileImage content=/favicons/mstile-144x144.png> <LINK rel=stylesheet type=text/css href="/statics/css/style.css">
+	        /* <META name=msapplication-TileImage content=/favicons/mstile-144x144.png> <LINK rel=stylesheet type=text/css href="/statics/css/style.css"> */
 		<META name=GENERATOR content="MSHTML 8.00.6001.19393">
 		<style>
 			* {
@@ -70,7 +70,7 @@
         }
     </style>
 	</HEAD>
-	<BODY>
+	<BODY style="background-color: #FFFFCC;">
 		
 		<!--<input type="hidden" id="port" th:value="${port}"/>-->
 		<DIV class=container>
@@ -106,22 +106,22 @@
 			<script src="http://code.jquery.com/jquery-1.8.3.min.js"></script>
 			<script type="application/javascript">
 				$(function() {
-					$("#btn").click(function() {
-						var port = $("#port").val();
-						if (port === "Android") {
-							location.href = "https://down.qq.com/qqweb/QQ_1/android_apk/Android_8.4.1.4680_537064985.apk";
-						} else if (port === "iOS") {
-							// location.href="https://apps.apple.com/cn/app/ilight-smart-lights/id981433808";
-							location.href = "https://apps.apple.com/cn/app/%E6%92%AD%E5%AE%A2/id525463029";
-						} else {
-							// alert("请在移动端进行下载~~");
-							$('#shade').css('display','block') // 打开遮罩层
-						}
-					})
-					// 点击遮罩层关闭
+				
+            // 复制链接并弹出提示
+            $("#btn").click(function() {
+                var currentUrl = window.location.href;
+                navigator.clipboard.writeText(currentUrl).then(function() {
+                    alert("网址已复制，请打开第三方浏览器粘贴到地址栏访问。您也可在按上方提示选择在第三方浏览器中打开将自动定位到你要访问的页面。");
+                }).catch(function(error) {
+                    console.error('无法复制网址: ', error);
+                    alert("无法复制网址，请手动复制当前页面链接并粘贴到第三方浏览器地址栏访问。");
+                });
+            });
+
+					/*// 点击遮罩层关闭
 					$("#shade").click(function() { 
 						$('#shade').css('display','none')
-					})
+					}) */
 				})
 			</script>
 	</BODY>
