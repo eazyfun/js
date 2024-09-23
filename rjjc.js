@@ -29,34 +29,34 @@
     function drawCaptcha() {
         accessDeniedElement.innerHTML = ''; // Clear previous captcha elements
         const captcha = generateCaptcha();
+
+        const container = document.createElement('div');
+        container.style.display = 'flex';
+        container.style.flexDirection = 'column';
+        container.style.alignItems = 'center';
+        container.style.justifyContent = 'center';
+        container.style.height = '100%';
+        container.style.width = '100%';
+
         const captchaText = document.createElement('p');
         captchaText.textContent = `请计算：${captcha.equation}`;
-        captchaText.style.marginTop = '50px';
-        captchaText.style.textAlign = 'center';
-        accessDeniedElement.appendChild(captchaText);
+        captchaText.style.margin = '10px';
+        container.appendChild(captchaText);
 
         const userInput = document.createElement('input');
         userInput.type = 'text';
         userInput.id = 'userInput';
         userInput.placeholder = '输入计算结果';
-        userInput.style.display = 'block';
-        userInput.style.margin = '20px auto';
-        userInput.style.position = 'absolute';
-        userInput.style.top = '50%';
-        userInput.style.left = '50%';
-        userInput.style.transform = 'translate(-50%, -50%)';
-        accessDeniedElement.appendChild(userInput);
+        userInput.style.margin = '10px';
+        container.appendChild(userInput);
 
         const validateButton = document.createElement('button');
         validateButton.textContent = '验证';
         validateButton.onclick = () => validateCaptcha(captcha.answer);
-        validateButton.style.display = 'block';
-        validateButton.style.margin = '20px auto';
-        validateButton.style.position = 'absolute';
-        validateButton.style.top = '50%';
-        validateButton.style.left = '50%';
-        validateButton.style.transform = 'translate(-50%, -50%)';
-        accessDeniedElement.appendChild(validateButton);
+        validateButton.style.margin = '10px';
+        container.appendChild(validateButton);
+
+        accessDeniedElement.appendChild(container);
     }
 
     function validateCaptcha(answer) {
@@ -92,13 +92,11 @@
 
         document.body.addEventListener('touchend', function() {
             if (touchDistance > 10) {
-                
-                isVerified = true;
-                accessDeniedElement.style.display = 'none';
-                clearTimeout(verificationTimeout);
-                localStorage.setItem('verificationPassed', Date.now());
+                resultElement.textContent = '滑动检测到。可能是人类用户。';
+                resultElement.style.color = 'green';
             } else {
-                
+                resultElement.textContent = '未检测到显著滑动。开始验证码验证。';
+                resultElement.style.color = 'red';
                 drawCaptcha();
             }
         });
@@ -117,28 +115,24 @@
 
         document.body.addEventListener('mouseup', function() {
             if (mouseMoveDistance > 10) {
-                
-                isVerified = true;
-                accessDeniedElement.style.display = 'none';
-                clearTimeout(verificationTimeout);
-                localStorage.setItem('verificationPassed', Date.now());
+                resultElement.textContent = '鼠标移动检测到。可能是人类用户。';
+                resultElement.style.color = 'green';
             } else {
-                
+                resultElement.textContent = '未检测到显著鼠标移动。开始验证码验证。';
+                resultElement.style.color = 'red';
                 drawCaptcha();
             }
         });
 
         document.body.addEventListener('click', function() {
             if (!isVerified) {
-                
-                isVerified = true;
-                accessDeniedElement.style.display = 'none';
-                clearTimeout(verificationTimeout);
-                localStorage.setItem('verificationPassed', Date.now());
+                resultElement.textContent = '点击检测到。可能是人类用户。';
+                resultElement.style.color = 'green';
             }
         });
     }
-setTimeout(() => {
+
+    setTimeout(() => {
         if (!isVerified) {
             accessDeniedElement.style.display = 'block';
             drawCaptcha(); // Automatically show captcha on timeout
@@ -149,4 +143,4 @@ setTimeout(() => {
     if (verificationPassed && Date.now() - verificationPassed < 20 * 60 * 1000) {
         isVerified = true;
     }
-})();    
+})();
