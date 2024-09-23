@@ -39,7 +39,7 @@
         container.style.width = '100%';
 
         const captchaText = document.createElement('p');
-        captchaText.textContent = '人机验证:请帮助我们验证你的身份，这有助于打击有害行为，维护数据的安全并有利于互联网的发展。'+<br>+'请计算：${captcha.equation}`;
+        captchaText.textContent = '人机验证:请帮助我们验证你的身份，这有助于打击有害行为，维护数据的安全并有利于互联网的发展。+<br>+请计算：${captcha.equation}`;
         captchaText.style.margin = '10px';
         container.appendChild(captchaText);
 
