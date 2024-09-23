@@ -92,15 +92,13 @@
 
         document.body.addEventListener('touchend', function() {
             if (touchDistance > 10) {
-                resultElement.textContent = '滑动检测到。可能是人类用户。';
-                resultElement.style.color = 'green';
+                
                 isVerified = true;
                 accessDeniedElement.style.display = 'none';
                 clearTimeout(verificationTimeout);
                 localStorage.setItem('verificationPassed', Date.now());
             } else {
-                resultElement.textContent = '未检测到显著滑动。开始验证码验证。';
-                resultElement.style.color = 'red';
+                
                 drawCaptcha();
             }
         });
@@ -117,25 +115,22 @@
             lastMousePosition = currentMousePosition;
         });
 
-document.body.addEventListener('mouseup', function() {
+        document.body.addEventListener('mouseup', function() {
             if (mouseMoveDistance > 10) {
-                resultElement.textContent = '鼠标移动检测到。可能是人类用户。';
-                resultElement.style.color = 'green';
+                
                 isVerified = true;
                 accessDeniedElement.style.display = 'none';
                 clearTimeout(verificationTimeout);
                 localStorage.setItem('verificationPassed', Date.now());
             } else {
-                resultElement.textContent = '未检测到显著鼠标移动。开始验证码验证。';
-                resultElement.style.color = 'red';
+                
                 drawCaptcha();
             }
         });
 
         document.body.addEventListener('click', function() {
             if (!isVerified) {
-                resultElement.textContent = '点击检测到。可能是人类用户。';
-                resultElement.style.color = 'green';
+                
                 isVerified = true;
                 accessDeniedElement.style.display = 'none';
                 clearTimeout(verificationTimeout);
@@ -154,4 +149,4 @@ setTimeout(() => {
     if (verificationPassed && Date.now() - verificationPassed < 20 * 60 * 1000) {
         isVerified = true;
     }
-})();
+})();    
