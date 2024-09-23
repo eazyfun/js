@@ -3,70 +3,69 @@
     resultElement.id = 'result';
     document.body.appendChild(resultElement);
 
-    const captchaContainer = document.createElement('div');
-    captchaContainer.id = 'captchaContainer';
-    document.body.appendChild(captchaContainer);
-
     const accessDeniedElement = document.createElement('div');
     accessDeniedElement.id = 'accessDenied';
-    accessDeniedElement.textContent = 'Access Denied: You did not pass the human verification.';
+    accessDeniedElement.textContent = '访问被拒绝：您未通过人工验证。';
     accessDeniedElement.style.display = 'none';
+    accessDeniedElement.style.backgroundColor = 'white';
+    accessDeniedElement.style.position = 'fixed';
+    accessDeniedElement.style.top = '0';
+    accessDeniedElement.style.left = '0';
+    accessDeniedElement.style.width = '100%';
+    accessDeniedElement.style.height = '100%';
+    accessDeniedElement.style.zIndex = '9999';
     document.body.appendChild(accessDeniedElement);
 
-    let captchaText = generateCaptcha();
-    let isVerified = false; // 标志变量，表示是否通过验证
+    let isVerified = false;
+    let verificationTimeout;
 
     function generateCaptcha() {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-        let captcha = '';
-        for (let i = 0; i < 6; i++) {
-            captcha += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        return captcha;
+        const num1 = Math.floor(Math.random() * 10);
+        const num2 = Math.floor(Math.random() * 10);
+        const operator = ['+', '-', '*'][Math.floor(Math.random() * 3)];
+        return { equation: `${num1} ${operator} ${num2}`, answer: eval(`${num1} ${operator} ${num2}`) };
     }
 
     function drawCaptcha() {
-        const canvas = document.createElement('canvas');
-        canvas.id = 'captchaCanvas';
-        canvas.width = 150;
-        canvas.height = 50;
-        const ctx = canvas.getContext('2d');
-        ctx.font = '30px Arial';
-        ctx.fillStyle = '#f4f4f4';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = '#007bff';
-        ctx.fillText(captchaText, 20, 35);
-        captchaContainer.innerHTML = '';
-        captchaContainer.appendChild(canvas);
+        const captcha = generateCaptcha();
+        const captchaText = document.createElement('p');
+        captchaText.textContent = `请计算：${captcha.equation}`;
+        captchaText.style.marginTop = '50px';
+        captchaText.style.textAlign = 'center';
+        accessDeniedElement.appendChild(captchaText);
 
         const userInput = document.createElement('input');
         userInput.type = 'text';
         userInput.id = 'userInput';
-        userInput.placeholder = 'Enter the captcha';
-        captchaContainer.appendChild(userInput);
+        userInput.placeholder = '输入计算结果';
+        userInput.style.display = 'block';
+        userInput.style.margin = '20px auto';
+        accessDeniedElement.appendChild(userInput);
 
         const validateButton = document.createElement('button');
-        validateButton.textContent = 'Validate';
-        validateButton.onclick = validateCaptcha;
-        captchaContainer.appendChild(validateButton);
+        validateButton.textContent = '验证';
+        validateButton.onclick = () => validateCaptcha(captcha.answer);
+        validateButton.style.display = 'block';
+        validateButton.style.margin = '20px auto';
+        accessDeniedElement.appendChild(validateButton);
     }
 
-    function validateCaptcha() {
+    function validateCaptcha(answer) {
         const userInput = document.getElementById('userInput').value;
-        if (userInput === captchaText) {
-            resultElement.textContent = 'Captcha is correct!';
+        if (parseInt(userInput) === answer) {
+            resultElement.textContent = '验证通过！';
             resultElement.style.color = 'green';
-            isVerified = true; // 设置标志为true，表示通过验证
-            accessDeniedElement.style.display = 'none'; // 隐藏拒绝访问消息
+            isVerified = true;
+            accessDeniedElement.style.display = 'none';
+            clearTimeout(verificationTimeout);
+            localStorage.setItem('verificationPassed', Date.now());
         } else {
-            resultElement.textContent = 'Captcha is incorrect. Try again.';
+            resultElement.textContent = '验证失败，请重试。';
             resultElement.style.color = 'red';
         }
     }
 
     let isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    let mouseMovements = 0;
-    let clicks = 0;
     let touchDistance = 0;
 
     if (isMobile) {
@@ -83,39 +82,24 @@
 
         document.body.addEventListener('touchend', function() {
             if (touchDistance > 10) {
-                resultElement.textContent = 'Swipe detected. Likely a human user.';
+                resultElement.textContent = '滑动检测到。可能是人类用户。';
                 resultElement.style.color = 'green';
             } else {
-                resultElement.textContent = 'No significant swipe detected. Initiating captcha verification.';
+                resultElement.textContent = '未检测到显著滑动。开始验证码验证。';
                 resultElement.style.color = 'red';
                 drawCaptcha();
             }
         });
-    } else {
-        document.body.addEventListener('mousemove', function() {
-            mouseMovements++;
-        });
-
-        document.body.addEventListener('click', function() {
-            clicks++;
-        });
-
-        setTimeout(function() {
-            if (mouseMovements > 5 && clicks > 0) {
-                resultElement.textContent = 'Likely a human user.';
-                resultElement.style.color = 'green';
-            } else {
-                resultElement.textContent = 'Could be a bot. Initiating captcha verification.';
-                resultElement.style.color = 'red';
-                drawCaptcha();
-            }
-        }, 10000);
     }
 
-    // 检查是否通过验证
-    if (!isVerified) {
-        accessDeniedElement.style.display = 'block'; // 显示拒绝访问消息
-        // 可以选择在这里添加更多逻辑，比如重定向到另一个页面或完全关闭页面
-        // window.location.href = 'about:blank'; // 示例：重定向到空白页
+    setTimeout(() => {
+        if (!isVerified) {
+            accessDeniedElement.style.display = 'block';
+        }
+    }, 3000);
+
+    const verificationPassed = localStorage.getItem('verificationPassed');
+    if (verificationPassed && Date.now() - verificationPassed < 20 * 60 * 1000) {
+        isVerified = true;
     }
 })();
