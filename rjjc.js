@@ -1,4 +1,4 @@
-(function() {
+(function() { //暂时搁置，先搞别的了，不可引用
     const resultElement = document.createElement('p');
     resultElement.id = 'result';
     document.body.appendChild(resultElement);
