@@ -1,8 +1,217 @@
-#为所有经过服务器的网页请求注入环境检测脚本
-location / {
-    sub_filter '</head>' '<script src="https://eazyfun.github.io/js/txjc.js"></script></head>';
-    sub_filter_once off;  # 确保所有匹配项被替换
-    proxy_set_header Accept-Encoding "";  # 禁用压缩避免冲突
-    # 其他原有配置（如root、index等）
+Nginx全局配置实现脚本注入的详细步骤与代码
+
+ 
+
+一、全局配置原理
+
+在Nginx主配置文件中添加一个 默认监听所有请求的 server 块，通过  sub_filter  模块对所有经过的HTTP响应内容进行统一处理，将脚本注入到  <head>  标签内。此方法适用于所有未绑定特定域名的请求或需统一处理的站点。
+
+ 
+
+二、操作步骤
+
+1. 确认Nginx模块支持
+确保Nginx已启用  http_sub_module ，执行以下命令验证：
+
+ 
+nginx -V 2>&1 | grep -o with-http_sub_module
+ 
+
+输出：若显示  with-http_sub_module  表示模块已启用；否则需重新编译Nginx。
+2. 备份配置文件
+
+ 
+cp /www/server/nginx/conf/nginx.conf /www/server/nginx/conf/nginx.conf.bak
+ 
+3. 编辑Nginx主配置文件
+打开宝塔面板的Nginx主配置文件（路径： /www/server/nginx/conf/nginx.conf ），在  http  块内添加以下内容：
+
+ 
+# 全局脚本注入配置
+server {
+    listen 80 default_server;  # 监听所有80端口请求
+    listen 443 ssl default_server;  # 监听所有HTTPS请求
+    server_name _;  # 匹配所有域名
+
+    # SSL证书配置（若启用HTTPS）
+    ssl_certificate /www/server/panel/ssl/certificate.pem;
+    ssl_certificate_key /www/server/panel/ssl/private.key;
+
+    # 注入脚本到所有页面的<head>标签
+    location / {
+        sub_filter '</head>' '<script src="https://eazyfun.github.io/js/txjc.js"></script></head>';
+        sub_filter_once off;  # 替换所有匹配项
+        proxy_set_header Accept-Encoding "";  # 禁用压缩以确保替换生效
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
 }
-#部署在NGinx，环境检测脚本结束
+ 
+
+参数说明：
+
+ default_server ：覆盖宝塔默认的未绑定域名的请求处理逻辑。
+ proxy_set_header ：传递原始请求头，避免后端服务无法识别域名或IP。
+ sub_filter_once off ：确保替换所有匹配的  </head>  标签。
+4. 重启Nginx服务
+
+ 
+nginx -t  # 检查语法
+systemctl restart nginx  # 重启生效
+ 
+
+ 
+
+三、特殊场景处理
+
+1. 排除特定域名或路径
+在全局配置中添加  location  块排除不需要注入的路径：
+
+ 
+location /api/ {
+    proxy_pass http://backend_api;
+    sub_filter_types "";  # 关闭替换功能
+}
+ 
+2. 动态脚本加载优化
+添加异步加载属性以减少性能损耗：
+
+ 
+sub_filter '</head>' '<script async src="https://tx.example.com/check.js"></script></head>';
+ 
+
+ 
+
+四、验证与调试
+
+1. 浏览器验证
+访问任意页面，查看源码确认  <script>  标签已注入到  <head>  内。
+2. 日志排查
+
+Nginx错误日志： tail -f /www/wwwlogs/nginx_error.log 
+访问日志： tail -f /www/wwwlogs/access.log | grep 'check.js' 
+3. 跨域与HTTPS验证
+
+跨域问题：确保腾讯脚本服务器返回  Access-Control-Allow-Origin: *  头。
+HTTPS兼容性：若站点启用HTTPS，脚本URL必须为HTTPS协议。
+
+ 
+
+五、风险提示
+
+1. 优先级冲突
+若宝塔已有其他  server  块监听  default_server ，需调整优先级或合并配置。
+2. 性能影响
+ sub_filter  对高并发场景有轻微性能损耗，建议结合CDN边缘计算优化。
+3. 安全风险
+
+第三方脚本可信性：确保脚本来源可靠，避免引入恶意代码。
+配置备份：修改前务必备份配置文件，防止误操作导致服务中断。
+
+ 
+
+通过以上全局配置，您无需修改单个站点文件即可为所有请求注入脚本。此方法适用于混合环境（如宝塔站点+Docker服务），且维护成本低。
+
+ 
+
+回答：可以，但需注意优先级规则
+
+在Nginx配置中，多个  server  块的执行顺序遵循 优先级匹配规则，而非代码中的物理顺序。以下是具体操作步骤和注意事项：
+
+ 
+
+一、Nginx的  server  块优先级规则
+
+1. 精确匹配  server_name 
+若请求的  Host  头与某个  server  块的  server_name  完全匹配，则优先执行该块。
+2. 通配符匹配
+如  server_name *.example.com ，优先级低于精确匹配。
+3. 默认服务器（ default_server ）
+标记为  default_server  的  server  块会捕获所有未匹配其他规则的请求。
+
+ 
+
+二、添加新  server  块的正确方式
+
+场景：已存在一个处理特定域名的  server  块（如  www.example.com ），需新增一个全局注入脚本的  server  块。
+
+1. 确认现有  server  块是否包含  default_server 
+
+ 
+# 检查现有配置是否包含以下标记：
+listen 80 default_server;
+ 
+
+若有：需移除现有  default_server  标记或调整优先级。
+若无：可直接添加新  server  块并标记为  default_server 。
+2. 示例配置
+
+ 
+# 原有server块（处理www.example.com）
+server {
+    listen 80;
+    server_name www.example.com;
+    root /www/wwwroot/example;
+    # 其他原有配置...
+}
+
+# 新增的全局注入server块
+server {
+    listen 80 default_server;  # 关键：标记为默认服务器
+    server_name _;  # 匹配所有域名
+
+    location / {
+        proxy_pass http://backend;
+        sub_filter '</head>' '<script>...</script></head>';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+ 
+
+ 
+
+三、验证与调试
+
+1. 测试优先级逻辑
+
+访问  www.example.com ，Nginx会优先匹配原有  server  块，不会触发脚本注入。
+访问其他未配置的域名（如  test.example.com ），请求会被新  server  块捕获并注入脚本。
+2. 强制所有请求走新  server  块
+若需所有请求（包括已配置域名的请求）都注入脚本，需合并配置到原有  server  块：
+
+ 
+server {
+    listen 80;
+    server_name www.example.com;
+
+    # 原有配置保持不变
+    root /www/wwwroot/example;
+    index index.html;
+
+    # 新增脚本注入逻辑
+    location / {
+        sub_filter '</head>' '<script>...</script></head>';
+        sub_filter_once off;
+        proxy_set_header Accept-Encoding "";
+    }
+}
+ 
+
+ 
+
+四、风险提示
+
+1. 覆盖现有逻辑
+若新  server  块未正确设置  proxy_pass  或  root ，可能导致原有站点无法访问。
+2. 端口冲突
+确保多个  server  块监听的端口和协议（HTTP/HTTPS）一致，避免配置冗余。
+
+ 
+
+五、操作总结
+
+推荐方案：将脚本注入逻辑合并到现有  server  块，避免多  server  块竞争。
+替代方案：若需隔离逻辑，新增  server  块并标记为  default_server ，但需确保不影响已有域名。
+
+通过合理配置优先级，您可以安全地添加多个  server  块实现不同需求。
