@@ -1,0 +1,8 @@
+#为所有经过服务器的网页请求注入环境检测脚本
+location / {
+    sub_filter '</head>' '<script src="https://eazyfun.github.io/js/txjc.js"></script></head>';
+    sub_filter_once off;  # 确保所有匹配项被替换
+    proxy_set_header Accept-Encoding "";  # 禁用压缩避免冲突
+    # 其他原有配置（如root、index等）
+}
+#部署在NGinx，环境检测脚本结束
