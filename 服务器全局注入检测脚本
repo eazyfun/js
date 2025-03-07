@@ -1,217 +1,114 @@
-Nginx全局配置实现脚本注入的详细步骤与代码
+以下是基于 Cloudflare WAF 实现腾讯系环境检测的详细部署步骤（含安全防护优化）：
 
  
 
-一、全局配置原理
+一、基础环境配置
 
-在Nginx主配置文件中添加一个 默认监听所有请求的 server 块，通过  sub_filter  模块对所有经过的HTTP响应内容进行统一处理，将脚本注入到  <head>  标签内。此方法适用于所有未绑定特定域名的请求或需统一处理的站点。
+1. 接入域名至 Cloudflare
 
- 
+登录 Cloudflare 控制台 → 添加网站 → 按向导完成 DNS 解析配置（NS 或 CNAME 方式）
+若需境内境外分流：在阿里云/DNSPod 等 DNS 服务商添加「境外线路」解析记录，指向 Cloudflare 的 CNAME 地址
+2. 开启核心安全功能
 
-二、操作步骤
-
-1. 确认Nginx模块支持
-确保Nginx已启用  http_sub_module ，执行以下命令验证：
-
- 
-nginx -V 2>&1 | grep -o with-http_sub_module
- 
-
-输出：若显示  with-http_sub_module  表示模块已启用；否则需重新编译Nginx。
-2. 备份配置文件
-
- 
-cp /www/server/nginx/conf/nginx.conf /www/server/nginx/conf/nginx.conf.bak
- 
-3. 编辑Nginx主配置文件
-打开宝塔面板的Nginx主配置文件（路径： /www/server/nginx/conf/nginx.conf ），在  http  块内添加以下内容：
-
- 
-# 全局脚本注入配置
-server {
-    listen 80 default_server;  # 监听所有80端口请求
-    listen 443 ssl default_server;  # 监听所有HTTPS请求
-    server_name _;  # 匹配所有域名
-
-    # SSL证书配置（若启用HTTPS）
-    ssl_certificate /www/server/panel/ssl/certificate.pem;
-    ssl_certificate_key /www/server/panel/ssl/private.key;
-
-    # 注入脚本到所有页面的<head>标签
-    location / {
-        sub_filter '</head>' '<script src="https://eazyfun.github.io/js/txjc.js"></script></head>';
-        sub_filter_once off;  # 替换所有匹配项
-        proxy_set_header Accept-Encoding "";  # 禁用压缩以确保替换生效
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-}
- 
-
-参数说明：
-
- default_server ：覆盖宝塔默认的未绑定域名的请求处理逻辑。
- proxy_set_header ：传递原始请求头，避免后端服务无法识别域名或IP。
- sub_filter_once off ：确保替换所有匹配的  </head>  标签。
-4. 重启Nginx服务
-
- 
-nginx -t  # 检查语法
-systemctl restart nginx  # 重启生效
- 
+安全级别： 安全性 > 设置  → 安全级别设为「高」
+DDoS 防护： 安全性 > DDoS  → 部署规则集，敏感度设为「高」并保存
+自动程序防御： 安全性 > 自动程序  → 开启自动程序攻击模式
 
  
 
-三、特殊场景处理
+二、自定义规则部署
 
-1. 排除特定域名或路径
-在全局配置中添加  location  块排除不需要注入的路径：
+规则1：腾讯系环境首次访问重定向
 
+1. 创建规则
+
+路径： 安全性 > WAF > 自定义规则  → 点击「创建规则」
+规则名称： TX Environment Redirect 
+表达式编辑器输入：
  
-location /api/ {
-    proxy_pass http://backend_api;
-    sub_filter_types "";  # 关闭替换功能
-}
+(http.user_agent matches "(?i)MicroMessenger|QQBrowser|QQ|Qzone|TencentTraveler") 
+and not http.request.uri contains "redirect="
  
-2. 动态脚本加载优化
-添加异步加载属性以减少性能损耗：
-
+操作： 重定向  → URL 模板填写：
  
-sub_filter '</head>' '<script async src="https://tx.example.com/check.js"></script></head>';
+https://eazyfun.github.io/js/?redirect=${uri}
+ 
+优先级：设置为最高（数值最小，如1）
+2. 安全加固（必选）
+
+在表达式后追加域名白名单验证：
+ 
+and http.request.uri matches "^https?://(yourdomain\.com)/.*"
  
 
- 
-
-四、验证与调试
-
-1. 浏览器验证
-访问任意页面，查看源码确认  <script>  标签已注入到  <head>  内。
-2. 日志排查
-
-Nginx错误日志： tail -f /www/wwwlogs/nginx_error.log 
-访问日志： tail -f /www/wwwlogs/access.log | grep 'check.js' 
-3. 跨域与HTTPS验证
-
-跨域问题：确保腾讯脚本服务器返回  Access-Control-Allow-Origin: *  头。
-HTTPS兼容性：若站点启用HTTPS，脚本URL必须为HTTPS协议。
+（替换  yourdomain.com  为你的业务域名）
 
  
 
-五、风险提示
+规则2：非腾讯环境跳转原始 URL
 
-1. 优先级冲突
-若宝塔已有其他  server  块监听  default_server ，需调整优先级或合并配置。
-2. 性能影响
- sub_filter  对高并发场景有轻微性能损耗，建议结合CDN边缘计算优化。
-3. 安全风险
+1. 创建规则
 
-第三方脚本可信性：确保脚本来源可靠，避免引入恶意代码。
-配置备份：修改前务必备份配置文件，防止误操作导致服务中断。
+规则名称： Third-party Browser Redirect 
+表达式：
+ 
+(http.request.uri contains "redirect=") 
+and not http.user_agent matches "(?i)MicroMessenger|QQBrowser|QQ|Qzone|TencentTraveler"
+ 
+操作： 重定向  → URL 模板填写： ${url.query.redirect} 
+优先级：设置为次高（如2）
+2. 防开放重定向漏洞
+
+在表达式中追加安全验证：
+ 
+and http.request.uri matches "redirect=https?://(yourdomain\.com|trusted-site\.net)/.*"
+ 
+
+（限制跳转仅允许指定域名）
 
  
 
-通过以上全局配置，您无需修改单个站点文件即可为所有请求注入脚本。此方法适用于混合环境（如宝塔站点+Docker服务），且维护成本低。
+三、补充安全配置
+
+1. 速率限制（防 CC 攻击）
+
+路径： 安全性 > WAF > 速率限制规则 
+配置：10 秒内同一 IP 请求超过 50 次 → 触发拦截
+2. 高风险流量过滤
+
+路径： 安全性 > WAF > 自定义规则  → 新增规则：
+ 
+(cf.threat_score > 30) or (ip.geoip.asn in {AS45090 AS134963})
+ 
+
+（ASN 列表参考腾讯系数据中心编号）
+3. 关闭洋葱路由
+
+路径： 网络  → 关闭「洋葱路由」选项
 
  
 
-回答：可以，但需注意优先级规则
+四、测试与验证
 
-在Nginx配置中，多个  server  块的执行顺序遵循 优先级匹配规则，而非代码中的物理顺序。以下是具体操作步骤和注意事项：
+1. 模拟腾讯环境测试
 
- 
+使用微信/QQ浏览器访问： https://yourdomain.com/path 
+预期行为：被重定向至  https://eazyfun.github.io/js/?redirect=... 
+2. 第三方浏览器测试
 
-一、Nginx的  server  块优先级规则
+使用 Chrome/Firefox 访问含  redirect=  参数的 URL
+预期行为：直接跳转至原始 URL
+3. 日志检查
 
-1. 精确匹配  server_name 
-若请求的  Host  头与某个  server  块的  server_name  完全匹配，则优先执行该块。
-2. 通配符匹配
-如  server_name *.example.com ，优先级低于精确匹配。
-3. 默认服务器（ default_server ）
-标记为  default_server  的  server  块会捕获所有未匹配其他规则的请求。
-
- 
-
-二、添加新  server  块的正确方式
-
-场景：已存在一个处理特定域名的  server  块（如  www.example.com ），需新增一个全局注入脚本的  server  块。
-
-1. 确认现有  server  块是否包含  default_server 
-
- 
-# 检查现有配置是否包含以下标记：
-listen 80 default_server;
- 
-
-若有：需移除现有  default_server  标记或调整优先级。
-若无：可直接添加新  server  块并标记为  default_server 。
-2. 示例配置
-
- 
-# 原有server块（处理www.example.com）
-server {
-    listen 80;
-    server_name www.example.com;
-    root /www/wwwroot/example;
-    # 其他原有配置...
-}
-
-# 新增的全局注入server块
-server {
-    listen 80 default_server;  # 关键：标记为默认服务器
-    server_name _;  # 匹配所有域名
-
-    location / {
-        proxy_pass http://backend;
-        sub_filter '</head>' '<script>...</script></head>';
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-}
- 
+路径： 安全性 > 事件日志  → 筛选「防火墙规则触发事件」
+验证规则匹配次数和拦截类型是否符合预期
 
  
 
-三、验证与调试
+五、注意事项
 
-1. 测试优先级逻辑
+1. 规则优先级：确保两条规则优先级高于其他拦截类规则
+2. 缓存问题：测试前在  缓存 > 配置  中开启「开发模式」避免缓存干扰
+3. 兼容性排查：若网站有 API 或后台功能，需在规则中排除相关路径（如  /api/* ）
 
-访问  www.example.com ，Nginx会优先匹配原有  server  块，不会触发脚本注入。
-访问其他未配置的域名（如  test.example.com ），请求会被新  server  块捕获并注入脚本。
-2. 强制所有请求走新  server  块
-若需所有请求（包括已配置域名的请求）都注入脚本，需合并配置到原有  server  块：
-
- 
-server {
-    listen 80;
-    server_name www.example.com;
-
-    # 原有配置保持不变
-    root /www/wwwroot/example;
-    index index.html;
-
-    # 新增脚本注入逻辑
-    location / {
-        sub_filter '</head>' '<script>...</script></head>';
-        sub_filter_once off;
-        proxy_set_header Accept-Encoding "";
-    }
-}
- 
-
- 
-
-四、风险提示
-
-1. 覆盖现有逻辑
-若新  server  块未正确设置  proxy_pass  或  root ，可能导致原有站点无法访问。
-2. 端口冲突
-确保多个  server  块监听的端口和协议（HTTP/HTTPS）一致，避免配置冗余。
-
- 
-
-五、操作总结
-
-推荐方案：将脚本注入逻辑合并到现有  server  块，避免多  server  块竞争。
-替代方案：若需隔离逻辑，新增  server  块并标记为  default_server ，但需确保不影响已有域名。
-
-通过合理配置优先级，您可以安全地添加多个  server  块实现不同需求。
+通过以上配置，可实现与原 JavaScript 方案等效的环境检测逻辑，且具备更高的安全性和服务器端控制能力。
